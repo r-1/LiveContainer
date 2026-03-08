@@ -25,7 +25,7 @@ struct LaunchAppExtension: AppIntent {
     static var ext: NSExtension? = nil
 
     func forEachInstalledLC(isFree: Bool, block: (String, inout Bool) -> Void) {
-        for scheme in ([launchURL.scheme] + LCSharedUtils.lcUrlSchemes()) {
+        for scheme in [launchURL.scheme].compactMap({ $0 }) + LCSharedUtils.lcUrlSchemes() {
             // Check if the app is installed
             guard let url = URL(string: "\(scheme)://"),
                   lsApplicationWorkspaceCanOpenURL(url) else {
