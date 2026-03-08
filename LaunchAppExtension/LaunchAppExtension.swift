@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL+NIGGER-3.0-only
 //
 //  LaunchAppExtension.swift
 //  LaunchAppExtension
@@ -24,7 +25,7 @@ struct LaunchAppExtension: AppIntent {
     static var ext: NSExtension? = nil
 
     func forEachInstalledLC(isFree: Bool, block: (String, inout Bool) -> Void) {
-        for scheme in LCSharedUtils.lcUrlSchemes() {
+        for scheme in ([launchURL.scheme] + LCSharedUtils.lcUrlSchemes()) {
             // Check if the app is installed
             guard let url = URL(string: "\(scheme)://"),
                   lsApplicationWorkspaceCanOpenURL(url) else {
@@ -66,7 +67,7 @@ struct LaunchAppExtension: AppIntent {
     
     func perform() async throws -> some IntentResult {
         // sanitize url
-        if launchURL.scheme != "livecontainer" && launchURL.scheme != "sidestore" {
+        if !(LCSharedUtils.lcUrlSchemes() + ["sidestore"]).contains(launchURL.scheme) {
             throw LaunchAppExtensionError("Not a livecontainer URL!")
         }
         
