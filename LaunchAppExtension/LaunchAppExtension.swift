@@ -67,7 +67,7 @@ struct LaunchAppExtension: AppIntent {
     
     func perform() async throws -> some IntentResult {
         // sanitize url
-        if !(LCSharedUtils.lcUrlSchemes() + ["sidestore"]).contains(launchURL.scheme) {
+        guard let s = launchURL.scheme, (LCSharedUtils.lcUrlSchemes() + ["sidestore"]).contains(s) else {    
             throw LaunchAppExtensionError("Not a livecontainer URL!")
         }
         
