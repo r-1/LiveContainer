@@ -125,7 +125,7 @@ struct LCAppBanner : View {
             .allowsHitTesting(false)
             Spacer()
             Button {
-                if #available(iOS 16.0, *), sharedModel.multiLCStatus != 2 && launchInMultitaskMode {
+                if #available(iOS 16.0, *), launchInMultitaskMode {
                      if let currentDataFolder = model.uiSelectedContainer?.folderName,
                         MultitaskManager.isUsing(container: currentDataFolder) {
                          var found = false
@@ -176,6 +176,7 @@ struct LCAppBanner : View {
 
             })
             .clipShape(Capsule())
+            .contentShape(Capsule())
             .disabled(model.isAppRunning)
         }
         .padding()
