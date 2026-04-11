@@ -3,9 +3,9 @@ import Foundation
 protocol LCAppModelDelegate {
     func closeNavigationView()
     func changeAppVisibility(app : LCAppModel)
-    func jitLaunch() async
-    func jitLaunch(withScript script: String) async
-    func jitLaunch(withPID pid: Int, withScript script: String?) async
+    func jitLaunch(appName: String) async
+    func jitLaunch(withScript script: String, appName: String) async
+    func jitLaunch(withPID pid: Int, withScript script: String?, appName: String) async
     func showRunWhenMultitaskAlert() async -> Bool?
 }
 
@@ -110,6 +110,23 @@ class LCAppModel: ObservableObject, Hashable {
         }
     }
     
+    @Published var uiIsMultitaskModeSpecificed : MultitaskSpecified {
+        didSet {
+            appInfo.multitaskSpecified = uiIsMultitaskModeSpecificed;
+        }
+    }
+    
+    public var shouldLaunchInMultitaskMode : Bool {
+        get {
+            if #available(iOS 16.0, *) {
+                return uiIsMultitaskModeSpecificed == .yes ||
+                (uiIsMultitaskModeSpecificed == .default && UserDefaults.standard.bool(forKey: "LCLaunchInMultitaskMode"))
+            } else {
+                return false
+            }
+        }
+    }
+    
     @Published var supportedLanguages : [String]?
     
     var delegate : LCAppModelDelegate?
@@ -132,6 +149,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiTweakFolder = appInfo.tweakFolder
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiOrientationLock = appInfo.orientationLock
+        self.uiIsMultitaskModeSpecificed = appInfo.multitaskSpecified
         self.uiUseLCBundleId = appInfo.doUseLCBundleId
         self.uiFixFilePickerNew = appInfo.fixFilePickerNew
         self.uiFixLocalNotification = appInfo.fixLocalNotification
@@ -162,7 +180,8 @@ class LCAppModel: ObservableObject, Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
     
-    func runApp(multitask: Bool = false, containerFolderName : String? = nil, bundleIdOverride : String? = nil, forceJIT: Bool? = nil) async throws{
+    // You should let LCAppModel.runApp to decide whether to run in multitask mode, but you may override the multitask parameter if necessary
+    func runApp(multitask: Bool? = nil, containerFolderName : String? = nil, bundleIdOverride : String? = nil, forceJIT: Bool? = nil) async throws{
         if isAppRunning {
             return
         }
@@ -183,6 +202,8 @@ class LCAppModel: ObservableObject, Hashable {
             uiSelectedContainer = uiContainers.first { $0.folderName == containerFolderName } ?? uiSelectedContainer
         }
         let currentDataFolder = containerFolderName ?? uiSelectedContainer?.folderName
+        
+        let multitask = multitask ?? shouldLaunchInMultitaskMode;
         
         if multitask,
            let currentDataFolder,
@@ -262,9 +283,9 @@ class LCAppModel: ObservableObject, Hashable {
                         }
                         Task {
                             if let scriptData = self.jitLaunchScriptJs, !scriptData.isEmpty {
-                                await self.delegate?.jitLaunch(withPID: pidNumber.intValue, withScript: scriptData)
+                                await self.delegate?.jitLaunch(withPID: pidNumber.intValue, withScript: scriptData, appName: self.appInfo.displayName())
                             } else {
-                                await self.delegate?.jitLaunch(withPID: pidNumber.intValue, withScript: nil)
+                                await self.delegate?.jitLaunch(withPID: pidNumber.intValue, withScript: nil, appName: self.appInfo.displayName())
                             }
                             continuation.resume()
                         }
@@ -273,9 +294,9 @@ class LCAppModel: ObservableObject, Hashable {
             } else {
                 // Non-multitask JIT flow remains unchanged
                 if let scriptData = jitLaunchScriptJs, !scriptData.isEmpty {
-                    await delegate?.jitLaunch(withScript: scriptData)
+                    await delegate?.jitLaunch(withScript: scriptData, appName: self.appInfo.displayName())
                 } else {
-                    await delegate?.jitLaunch()
+                    await delegate?.jitLaunch(appName: self.appInfo.displayName())
                 }
             }
         } else if multitask, #available(iOS 16.0, *) {
