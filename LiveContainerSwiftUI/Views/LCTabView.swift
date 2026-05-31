@@ -22,13 +22,24 @@ struct LCTabView: View {
     @EnvironmentObject var sceneDelegate: SceneDelegate
     @State var shouldToggleMainWindowOpen = false
     @Environment(\.scenePhase) var scenePhase
+    @StateObject var downloadHelper = DownloadHelper()
+    
+    @StateObject var searchContextAppList = SearchContext()
+    @StateObject var searchContextSource = SearchContext()
+    
     let pub = NotificationCenter.default.publisher(for: UIScene.didDisconnectNotification)
+    
+    private var appListView: LCAppListView {
+        LCAppListView(appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames, searchContext: searchContextAppList)
+    }
+    
+    private var sourcesView: LCSourcesView {
+        LCSourcesView(searchContext: searchContextSource)
+    }
 
     
     var body: some View {
         Group {
-            let appListView = LCAppListView(appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames)
-            let sourcesView = LCSourcesView()
             if #available(iOS 19.0, *), SharedModel.isLiquidGlassSearchEnabled {
                 TabView(selection: $sharedModel.selectedTab) {
                     if DataManager.shared.model.multiLCStatus != 2 {
@@ -50,10 +61,10 @@ struct LCTabView: View {
                     Tab("Search".loc, systemImage: "magnifyingglass", value: LCTabIdentifier.search, role: .search) {
                         if previousSelectedTab == .sources {
                             sourcesView
-                                .searchable(text: sourcesView.$searchContext.query)
+                                .searchable(text: $searchContextSource.query)
                         } else {
                             appListView
-                                .searchable(text: appListView.$searchContext.query)
+                                .searchable(text: $searchContextAppList.query)
                         }
 
                     }
@@ -88,6 +99,8 @@ struct LCTabView: View {
                 }
             }
         }
+        .downloadAlert(helper: downloadHelper)
+        .environmentObject(downloadHelper)
         .alert("lc.common.error".loc, isPresented: $errorShow){
             Button("lc.common.ok".loc, action: {
             })

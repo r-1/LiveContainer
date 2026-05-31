@@ -18,9 +18,7 @@ class LCContainer : ObservableObject, Hashable {
     var bookmarkResolveContinuation: UnsafeContinuation<(), Never>? = nil
     
     @Published var isolateAppGroup : Bool
-    @Published var calculatedSizeInBytes: Int64?
-    @Published var isCalculatingSize = false
-    @Published var sizeCalculationError: String?
+
     @Published var spoofIdentifierForVendor : Bool {
         didSet {
             if spoofIdentifierForVendor && spoofedIdentifier == nil {
@@ -186,7 +184,7 @@ extension LCAppInfo {
     var containers : [LCContainer] {
         get {
             if self is BuiltInSideStoreAppInfo {
-                let container = LCContainer(infoDict: ["name": "SideStore"], isShared: false)
+                let container = LCContainer(folderName: "", name: "SideStore", isShared: false)
                 container.resolvedContainerURL = LCPath.docPath.appendingPathComponent("SideStore")
                 return [container]
             }
